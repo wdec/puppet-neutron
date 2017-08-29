@@ -19,7 +19,8 @@ describe 'neutron::plugins::ml2::cisco::vts' do
       :vts_url                 => '<SERVICE DEFAULT>',
       :vts_timeout             => '<SERVICE DEFAULT>',
       :vts_sync_timeout        => '<SERVICE DEFAULT>',
-      :vts_retry_count         => '<SERVICE DEFAULT>'
+      :vts_retry_count         => '<SERVICE DEFAULT>',
+      :vts_vmmid               => '<SERVICE DEFAULT>'
     }
   end
 
@@ -48,6 +49,8 @@ describe 'neutron::plugins::ml2::cisco::vts' do
       is_expected.to contain_neutron_plugin_ml2('ml2_cc/timeout').with_value(params[:vts_timeout])
       is_expected.to contain_neutron_plugin_ml2('ml2_cc/sync_timeout').with_value(params[:vts_sync_timeout])
       is_expected.to contain_neutron_plugin_ml2('ml2_cc/retry_count').with_value(params[:vts_retry_count])
+      is_expected.to contain_neutron_plugin_ml2('ml2_cc/vmmid').with_value(params[:vts_vmmid])
+
     end
   end
 
