@@ -15,7 +15,7 @@
 #
 # == Class: neutron::agents::ml2::cisco_vts
 #
-# Setups OVS neutron agent when using ML2 plugin
+# Setups Cisco VTS OVS neutron agent when using ML2 plugin
 #
 # === Parameters
 #
@@ -184,6 +184,15 @@ class neutron::agents::ml2::cisco_vts_agent (
   # DEPRECATED PARAMETERS
   $prevent_arp_spoofing       = $::os_service_default,
   $enable_tunneling           = false,
+  # Cisco VTS parameters
+  $vts_username               = hiera('neutron::plugins::ml2::cisco::vts::vts_username'),
+  $vts_password               = hiera('neutron::plugins::ml2::cisco::vts::vts_password'),
+  $vts_url,
+  $vts_timeout                = hiera('neutron::plugins::ml2::cisco::vts::vts_timeout'),
+  $vts_agent_retries          = $::os_service_default,
+  $vts_agent_polling_interval = $::os_service_default,
+  $vts_vmmid                  = hiera('neutron::plugins::ml2::cisco::vts::vts_vmmid'),
+  $vts_phys_net               = $::os_service_default,
 ) {
 
   include ::neutron::deps
@@ -242,7 +251,7 @@ class neutron::agents::ml2::cisco_vts_agent (
     warning('The prevent_arp_spoofing parameter is deprecated and will be removed in Ocata release')
   }
 
-  resources { 'neutron_agent_ovs':
+  resources { 'neutron_vts_agent':
     purge => $purge_config,
   }
 
@@ -267,15 +276,15 @@ class neutron::agents::ml2::cisco_vts_agent (
     }
     if ($manage_vswitch) {
       neutron::plugins::ovs::bridge{ $bridge_mappings:
-        before => Service['neutron-ovs-agent-service'],
+        before => Service['neutron-vts-agent-service'],
       }
       neutron::plugins::ovs::port{ $bridge_uplinks:
-        before => Service['neutron-ovs-agent-service'],
+        before => Service['neutron-vts-agent-service'],
       }
     }
   }
 
-  neutron_agent_ovs {
+  neutron_agent_vts {
     'agent/polling_interval':           value => $polling_interval;
     'agent/l2_population':              value => $l2_population;
     'agent/arp_responder':              value => $arp_responder;
@@ -289,16 +298,25 @@ class neutron::agents::ml2::cisco_vts_agent (
     'ovs/vhostuser_socket_dir':         value => $vhostuser_socket_dir;
     'ovs/ovsdb_interface':              value => $ovsdb_interface;
     'ovs/of_interface':                 value => $of_interface;
+
+    'ml2_ncs/username':     value => $vts_username;
+    'ml2_ncs/password':     value => $vts_password, secret => true;
+    'ml2_ncs/url':          value => $vts_url;
+    'ml2_ncs/timeout':      value => $vts_timeout;
+    'ml2_ncs/polling_interval': value => $vts_agent_polling_interval;
+    'ml2_ncs/max_ncs_retries':  value => $vts_agent_retries;
+    'ml2_ncs/vmm_id':       value => $vts_vmmid;
+    'ml2_ncs/physnet_name': value => $vts_phys_net;
   }
 
   if $firewall_driver {
-    neutron_agent_ovs { 'securitygroup/firewall_driver': value => $firewall_driver }
+    neutron_agent_vts { 'securitygroup/firewall_driver': value => $firewall_driver }
   } else {
-    neutron_agent_ovs { 'securitygroup/firewall_driver': ensure => absent }
+    neutron_agent_vts { 'securitygroup/firewall_driver': ensure => absent }
   }
 
   if $enable_tunneling_real {
-    neutron_agent_ovs {
+    neutron_agent_vts {
       'ovs/tunnel_bridge':         value => $tunnel_bridge;
       'ovs/local_ip':              value => $local_ip;
       'ovs/int_peer_patch_port':   value => $int_peer_patch_port;
@@ -308,12 +326,12 @@ class neutron::agents::ml2::cisco_vts_agent (
 
     if 'vxlan' in $tunnel_types {
       validate_vxlan_udp_port($vxlan_udp_port)
-      neutron_agent_ovs {
+      neutron_agent_vts {
         'agent/vxlan_udp_port': value => $vxlan_udp_port;
       }
     }
   } else {
-    neutron_agent_ovs {
+    neutron_agent_vts {
       'ovs/tunnel_bridge':         ensure => absent;
       'ovs/local_ip':              ensure => absent;
       'ovs/int_peer_patch_port':   ensure => absent;
@@ -322,24 +340,24 @@ class neutron::agents::ml2::cisco_vts_agent (
   }
 
 
-  if $::neutron::params::ovs_agent_package {
-    package { 'neutron-ovs-agent':
-      ensure => $package_ensure,
-      name   => $::neutron::params::ovs_agent_package,
-      tag    => ['openstack', 'neutron-package'],
-    }
-  } else {
-    # Some platforms (RedHat) do not provide a separate
-    # neutron plugin ovs agent package. The configuration file for
-    # the ovs agent is provided by the neutron ovs plugin package.
-    if ! defined(Package['neutron-ovs-agent']) {
-      package { 'neutron-ovs-agent':
-        ensure => $package_ensure,
-        name   => $::neutron::params::ovs_server_package,
-        tag    => ['openstack', 'neutron-package'],
-      }
-    }
-  }
+#  if $::neutron::params::ovs_agent_package {
+#    package { 'neutron-ovs-agent':
+#      ensure => $package_ensure,
+#      name   => $::neutron::params::ovs_agent_package,
+#      tag    => ['openstack', 'neutron-package'],
+#    }
+#  } else {
+#    # Some platforms (RedHat) do not provide a separate
+#    # neutron plugin ovs agent package. The configuration file for
+#    # the ovs agent is provided by the neutron ovs plugin package.
+#    if ! defined(Package['neutron-ovs-agent']) {
+#      package { 'neutron-ovs-agent':
+#        ensure => $package_ensure,
+#        name   => $::neutron::params::ovs_server_package,
+#        tag    => ['openstack', 'neutron-package'],
+#      }
+#    }
+#  }
 
   if $manage_service {
     if $enabled {
@@ -349,20 +367,20 @@ class neutron::agents::ml2::cisco_vts_agent (
     }
   }
 
-  service { 'neutron-ovs-agent-service':
+  service { 'neutron-vts-agent-service':
     ensure => $service_ensure,
-    name   => $::neutron::params::ovs_agent_service,
+    name   => 'neutron-vts-agent', #$::neutron::params::ovs_agent_service,
     enable => $enabled,
     tag    => ['neutron-service', 'neutron-db-sync-service'],
   }
 
-  if $::neutron::params::ovs_cleanup_service {
-    service { 'ovs-cleanup-service':
-      name    => $::neutron::params::ovs_cleanup_service,
-      enable  => $enabled,
-      # TODO: Remove this require once ovs-cleanup service
-      # script is packaged in neutron-openvswitch package
-      require => Package['neutron'],
-    }
-  }
+#  if $::neutron::params::ovs_cleanup_service {
+#    service { 'ovs-cleanup-service':
+#      name    => $::neutron::params::ovs_cleanup_service,
+#      enable  => $enabled,
+#      # TODO: Remove this require once ovs-cleanup service
+#      # script is packaged in neutron-openvswitch package
+#      require => Package['neutron'],
+#    }
+#  }
 }
