@@ -13,11 +13,43 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 #
-# == Class: neutron::agents::ml2::cisco_vts
+# == Class: neutron::agents::ml2::cisco_vts_agent
 #
 # Setups Cisco VTS OVS neutron agent when using ML2 plugin
 #
 # === Parameters
+#
+# VTS Specific
+#
+# [*vts_username*]
+# (required) The VTS controller username
+# Example: 'admin'
+#
+# [*vts_password*]
+# (required) The VTS controller password
+# Example: 'admin'
+#
+# [*vts_url*]
+# (required) The VTS controller neutron URL
+# Example: 'http://127.0.0.1:8888/api/running/openstack'
+#
+# [*vts_agent_retries*]
+# (optional) Retries for connection to VTS host REST interface.
+# Defaults to $::os_service_default
+#
+# [*vts_agent_polling_interval*]
+# (optional) VTS Polling interval.
+# Defaults to $::os_service_default
+#
+# [*vts_phys_net*]
+# (optional) Name of physical network connected to VTS.
+# Defaults to $::os_service_default
+#
+# [*vts_vmmid*]
+# (optional) Virtual Machine Manager ID as assigned by VTS
+# Defaults to $::os_service_default
+#
+# Default OVS parameters
 #
 # [*package_ensure*]
 #   (optional) The state of the package
@@ -251,7 +283,7 @@ class neutron::agents::ml2::cisco_vts_agent (
     warning('The prevent_arp_spoofing parameter is deprecated and will be removed in Ocata release')
   }
 
-  resources { 'neutron_vts_agent':
+  resources { 'neutron_cisco_vts_agent':
     purge => $purge_config,
   }
 
@@ -271,7 +303,7 @@ class neutron::agents::ml2::cisco_vts_agent (
     # Set config for bridges that we're going to create
     # The OVS neutron plugin will talk in terms of the networks in the bridge_mappings
     $br_map_str = join($bridge_mappings, ',')
-    neutron_agent_ovs {
+    neutron_cisco_vts_agent {
       'ovs/bridge_mappings': value => $br_map_str;
     }
     if ($manage_vswitch) {
@@ -284,7 +316,7 @@ class neutron::agents::ml2::cisco_vts_agent (
     }
   }
 
-  neutron_agent_vts {
+  neutron_cisco_vts_agent {
     'agent/polling_interval':           value => $polling_interval;
     'agent/l2_population':              value => $l2_population;
     'agent/arp_responder':              value => $arp_responder;
@@ -299,24 +331,24 @@ class neutron::agents::ml2::cisco_vts_agent (
     'ovs/ovsdb_interface':              value => $ovsdb_interface;
     'ovs/of_interface':                 value => $of_interface;
 
-    'ml2_ncs/username':     value => $vts_username;
-    'ml2_ncs/password':     value => $vts_password, secret => true;
-    'ml2_ncs/url':          value => $vts_url;
-    'ml2_ncs/timeout':      value => $vts_timeout;
-    'ml2_ncs/polling_interval': value => $vts_agent_polling_interval;
-    'ml2_ncs/max_ncs_retries':  value => $vts_agent_retries;
-    'ml2_ncs/vmm_id':       value => $vts_vmmid;
-    'ml2_ncs/physnet_name': value => $vts_phys_net;
+    'ml2_ncs/username':                 value => $vts_username;
+    'ml2_ncs/password':                 value => $vts_password;
+    'ml2_ncs/url':                      value => $vts_url;
+    'ml2_ncs/timeout':                  value => $vts_timeout;
+    'ml2_ncs/polling_interval':         value => $vts_agent_polling_interval;
+    'ml2_ncs/max_ncs_retries':          value => $vts_agent_retries;
+    'ml2_ncs/vmm_id':                   value => $vts_vmmid;
+    'ml2_ncs/physnet_name':             value => $vts_phys_net;
   }
 
   if $firewall_driver {
-    neutron_agent_vts { 'securitygroup/firewall_driver': value => $firewall_driver }
+    neutron_cisco_vts_agent { 'securitygroup/firewall_driver': value => $firewall_driver }
   } else {
-    neutron_agent_vts { 'securitygroup/firewall_driver': ensure => absent }
+    neutron_cisco_vts_agent { 'securitygroup/firewall_driver': ensure => absent }
   }
 
   if $enable_tunneling_real {
-    neutron_agent_vts {
+    neutron_cisco_vts_agent {
       'ovs/tunnel_bridge':         value => $tunnel_bridge;
       'ovs/local_ip':              value => $local_ip;
       'ovs/int_peer_patch_port':   value => $int_peer_patch_port;
@@ -326,12 +358,12 @@ class neutron::agents::ml2::cisco_vts_agent (
 
     if 'vxlan' in $tunnel_types {
       validate_vxlan_udp_port($vxlan_udp_port)
-      neutron_agent_vts {
+      neutron_cisco_vts_agent {
         'agent/vxlan_udp_port': value => $vxlan_udp_port;
       }
     }
   } else {
-    neutron_agent_vts {
+    neutron_cisco_vts_agent {
       'ovs/tunnel_bridge':         ensure => absent;
       'ovs/local_ip':              ensure => absent;
       'ovs/int_peer_patch_port':   ensure => absent;
@@ -359,6 +391,12 @@ class neutron::agents::ml2::cisco_vts_agent (
 #    }
 #  }
 
+  package { 'cisco-vts-agent':
+    ensure => $package_ensure,
+    name   => 'cisco-vts-agent', #$::neutron::params::cisco_vts_agent_package,
+#    tag    => ['openstack', 'neutron-package'],
+  }
+
   if $manage_service {
     if $enabled {
       $service_ensure = 'running'
@@ -369,7 +407,7 @@ class neutron::agents::ml2::cisco_vts_agent (
 
   service { 'neutron-vts-agent-service':
     ensure => $service_ensure,
-    name   => 'neutron-vts-agent', #$::neutron::params::ovs_agent_service,
+    name   => 'neutron-vts-agent', #$::neutron::params::cisco_vts_agent_service,
     enable => $enabled,
     tag    => ['neutron-service', 'neutron-db-sync-service'],
   }
