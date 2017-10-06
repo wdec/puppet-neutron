@@ -14,32 +14,38 @@ describe 'neutron::plugins::ml2::cisco::vts' do
 
   let :default_params do
     {
-      :vts_username            => '<SERVICE DEFAULT>',
-      :vts_password            => '<SERVICE DEFAULT>',
-      :vts_url                 => '<SERVICE DEFAULT>',
       :vts_timeout             => '<SERVICE DEFAULT>',
       :vts_sync_timeout        => '<SERVICE DEFAULT>',
       :vts_retry_count         => '<SERVICE DEFAULT>',
-      :vts_vmmid               => '<SERVICE DEFAULT>'
+      :package_ensure          => 'present',
     }
   end
 
   let :params do
-    {}
+    {
+     :vts_username            => 'user',
+     :vts_password            => 'password',
+     :vts_url                 => 'http://abc123',
+     :vts_vmmid               => '12345',}
   end
 
   let :test_facts do
     {
       :operatingsystem        => 'default',
       :operatingsystemrelease => 'default',
-      :concat_basedir         => '/',
     }
   end
 
-
-  shared_examples_for 'neutron plugin cisco vts ml2' do
+  shared_examples_for 'neutron plugin ml2 cisco vts' do
     before do
       params.merge!(default_params)
+    end
+
+    it 'should have' do
+      is_expected.to contain_package('python-cisco-controller').with(
+          :ensure => params[:package_ensure],
+          :tag    => 'openstack'
+      )
     end
 
     it 'configures ml2_cisco_vts settings' do
@@ -54,16 +60,14 @@ describe 'neutron::plugins::ml2::cisco::vts' do
     end
   end
 
-  begin
-    context 'on RedHat platforms' do
-      let :facts do
-        @default_facts.merge(test_facts.merge({
-           :osfamily               => 'RedHat',
-           :operatingsystemrelease => '7'
-        }))
-      end
-
-      it_configures 'neutron plugin cisco vts ml2'
+  context 'on RedHat platforms' do
+    let :facts do
+      @default_facts.merge(test_facts.merge({
+         :osfamily               => 'RedHat',
+         :operatingsystemrelease => '7'
+      }))
     end
+
+    it_configures 'neutron plugin ml2 cisco vts'
   end
 end
