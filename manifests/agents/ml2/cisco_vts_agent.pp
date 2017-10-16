@@ -309,10 +309,10 @@ class neutron::agents::ml2::cisco_vts_agent (
     }
     if ($manage_vswitch) {
       neutron::plugins::ovs::bridge{ $bridge_mappings:
-        before => Service['neutron-vts-agent-service'],
+        before => Service['neutron-vts-agent'],
       }
       neutron::plugins::ovs::port{ $bridge_uplinks:
-        before => Service['neutron-vts-agent-service'],
+        before => Service['neutron-vts-agent'],
       }
     }
   }
