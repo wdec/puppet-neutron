@@ -23,7 +23,12 @@ Puppet::Type.newtype(:neutron_cisco_vts_agent) do
   end
 
   autorequire(:package) do
+    'cisco-vts-agent'
+  end
+
+  autorequire(:service) do
     'neutron-vts-agent'
   end
+
 
 end

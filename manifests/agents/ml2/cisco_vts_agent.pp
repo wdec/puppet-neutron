@@ -413,9 +413,6 @@ class neutron::agents::ml2::cisco_vts_agent (
     tag    => ['neutron-service', 'neutron-db-sync-service'],
   }
 
-  class { '::neutron_cisco_vts_agent': }
-    ~> service { 'neutron-vts-agent': }
-
   if $::neutron::params::ovs_cleanup_service {
     service { 'ovs-cleanup-service':
       name    => $::neutron::params::ovs_cleanup_service,
