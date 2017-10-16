@@ -186,6 +186,15 @@
 #   Defaults to false
 #
 class neutron::agents::ml2::cisco_vts_agent (
+  # Cisco VTS parameters
+  $vts_url                    = hiera('neutron::plugins::ml2::cisco::vts::vts_url'),
+  $vts_username               = hiera('neutron::plugins::ml2::cisco::vts::vts_username'),
+  $vts_password               = hiera('neutron::plugins::ml2::cisco::vts::vts_password'),
+  $vts_timeout                = hiera('neutron::plugins::ml2::cisco::vts::vts_timeout'),
+  $vts_agent_retries          = $::os_service_default,
+  $vts_agent_polling_interval = $::os_service_default,
+  $vts_vmmid                  = hiera('neutron::plugins::ml2::cisco::vts::vts_vmmid'),
+  $vts_phys_net               = $::os_service_default,
   $package_ensure             = 'present',
   $enabled                    = true,
   $manage_service             = true,
@@ -216,15 +225,7 @@ class neutron::agents::ml2::cisco_vts_agent (
   # DEPRECATED PARAMETERS
   $prevent_arp_spoofing       = $::os_service_default,
   $enable_tunneling           = false,
-  # Cisco VTS parameters
-  $vts_username               = hiera('neutron::plugins::ml2::cisco::vts::vts_username'),
-  $vts_password               = hiera('neutron::plugins::ml2::cisco::vts::vts_password'),
-  $vts_url,
-  $vts_timeout                = hiera('neutron::plugins::ml2::cisco::vts::vts_timeout'),
-  $vts_agent_retries          = $::os_service_default,
-  $vts_agent_polling_interval = $::os_service_default,
-  $vts_vmmid                  = hiera('neutron::plugins::ml2::cisco::vts::vts_vmmid'),
-  $vts_phys_net               = $::os_service_default,
+
 ) {
 
   include ::neutron::deps
@@ -393,8 +394,8 @@ class neutron::agents::ml2::cisco_vts_agent (
 
   package { 'cisco-vts-agent':
     ensure => $package_ensure,
-    name   => 'cisco-vts-agent', #$::neutron::params::cisco_vts_agent_package,
-#    tag    => ['openstack', 'neutron-package'],
+    name   => 'cisco-vts-agent',
+    tag    => ['openstack', 'neutron-package'],
   }
 
   if $manage_service {
@@ -405,20 +406,23 @@ class neutron::agents::ml2::cisco_vts_agent (
     }
   }
 
-  service { 'neutron-vts-agent-service':
+  service { 'neutron-vts-agent':
     ensure => $service_ensure,
-    name   => 'neutron-vts-agent', #$::neutron::params::cisco_vts_agent_service,
+    name   => 'neutron-vts-agent',
     enable => $enabled,
     tag    => ['neutron-service', 'neutron-db-sync-service'],
   }
 
-#  if $::neutron::params::ovs_cleanup_service {
-#    service { 'ovs-cleanup-service':
-#      name    => $::neutron::params::ovs_cleanup_service,
-#      enable  => $enabled,
-#      # TODO: Remove this require once ovs-cleanup service
-#      # script is packaged in neutron-openvswitch package
-#      require => Package['neutron'],
-#    }
-#  }
+  class { '::neutron_cisco_vts_agent': }
+    ~> service { 'neutron-vts-agent': }
+
+  if $::neutron::params::ovs_cleanup_service {
+    service { 'ovs-cleanup-service':
+      name    => $::neutron::params::ovs_cleanup_service,
+      enable  => $enabled,
+      # TODO: Remove this require once ovs-cleanup service
+      # script is packaged in neutron-openvswitch package
+      require => Package['neutron'],
+    }
+  }
 }
