@@ -40,13 +40,13 @@
 # Defaults to 'present'
 #
 class neutron::plugins::ml2::cisco::vts (
-  $vts_username,
-  $vts_password,
-  $vts_url,
+  $vts_username     = $::os_service_default,
+  $vts_password     = $::os_service_default,
+  $vts_url          = $::os_service_default,
+  $vts_vmmid        = $::os_service_default,
   $vts_timeout      = $::os_service_default,
   $vts_sync_timeout = $::os_service_default,
   $vts_retry_count  = $::os_service_default,
-  $vts_vmmid,
   $package_ensure   = 'present'
 ) {
 
@@ -67,6 +67,6 @@ class neutron::plugins::ml2::cisco::vts (
     'ml2_cc/timeout':      value => $vts_timeout;
     'ml2_cc/sync_timeout': value => $vts_sync_timeout;
     'ml2_cc/retry_count':  value => $vts_retry_count;
-    'ml2_cc/vmm_id':        value => $vts_vmmid;
+    'ml2_cc/vmm_id':       value => $vts_vmmid;
   }
 }
