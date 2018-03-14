@@ -187,10 +187,10 @@
 #
 class neutron::agents::ml2::cisco_vts_agent (
   # Cisco VTS parameters
-  $vts_url                    = hiera('neutron::plugins::ml2::cisco::vts::vts_url'),
-  $vts_username               = hiera('neutron::plugins::ml2::cisco::vts::vts_username'),
-  $vts_password               = hiera('neutron::plugins::ml2::cisco::vts::vts_password'),
-  $vts_timeout                = hiera('neutron::plugins::ml2::cisco::vts::vts_timeout'),
+  $vts_url                    = $::os_service_default,
+  $vts_username               = hiera('neutron::plugins::ml2::cisco_vts_agent::vts_username'),
+  $vts_password               = hiera('neutron::plugins::ml2::cisco_vts_agent::vts_password'),
+  $vts_timeout                = hiera('neutron::plugins::ml2::cisco_vts_agent::vts_timeout'),
   $vts_agent_retries          = $::os_service_default,
   $vts_agent_polling_interval = $::os_service_default,
   $vts_vmmid                  = hiera('neutron::plugins::ml2::cisco::vts::vts_vmmid'),
@@ -225,7 +225,6 @@ class neutron::agents::ml2::cisco_vts_agent (
   # DEPRECATED PARAMETERS
   $prevent_arp_spoofing       = $::os_service_default,
   $enable_tunneling           = false,
-
 ) {
 
   include ::neutron::deps
