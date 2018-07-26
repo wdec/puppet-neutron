@@ -6,19 +6,16 @@
 # === Parameters
 #
 # [*vts_username*]
-# (optional) The VTS controller username
+# (required) The VTS controller username
 # Example: 'admin'
-# Defaults to $::os_service_default
 #
 # [*vts_password*]
-# (optional) The VTS controller password
+# (required) The VTS controller password
 # Example: 'admin'
-# Defaults to $::os_service_default
 #
 # [*vts_url*]
-# (optional) The VTS controller neutron URL
+# (required) The VTS controller neutron URL
 # Example: 'http://127.0.0.1:8888/api/running/openstack'
-# Defaults to $::os_service_default
 #
 # [*vts_timeout*]
 # (optional) Timeout for connection to vts host REST interface.
